@@ -48,7 +48,7 @@ let summaryText='';
 form.addEventListener('submit',event=>{
  event.preventDefault();const s=update();if(s.error || !form.reportValidity())return;
  if(!field('fullname').value.trim()){field('fullname').setCustomValidity('Indiquez votre nom.');field('fullname').reportValidity();return;}
- const lines=['VODUN CAMP — SIMULATION UNIQUEMENT','Aucune réservation effectuée. Aucun paiement. Aucun envoi.',`${s.plan.name} · ${s.guests} personne(s)`,`${displayDate(s.arrival)} au ${displayDate(s.departure)} · ${s.nights} nuit(s)`,`Hébergement : ${money(s.lodging)} FCFA`,...s.options.map(o=>`${o.name} : ${money(o.total)} FCFA`),`TOTAL ESTIMÉ : ${money(s.total)} FCFA`,`Nom : ${field('fullname').value.trim()}`,`Téléphone : ${field('phone').value}`,`E-mail : ${field('email').value}`,`Paiement envisagé : ${field('payment').value} (non activé)`,'Tarifs, services, dates événement et emplacement exact à confirmer.'];
+ const lines=['VODUN CAMP — SIMULATION UNIQUEMENT','Aucune réservation effectuée. Aucun paiement. Aucun envoi.',`${s.plan.name} · ${s.guests} personne(s)`,`${displayDate(s.arrival)} au ${displayDate(s.departure)} · ${s.nights} nuit(s)`,`Hébergement : ${money(s.lodging)} FCFA`,...s.options.map(o=>`${o.name} : ${money(o.total)} FCFA`),`TOTAL ESTIMÉ : ${money(s.total)} FCFA`,`Nom : ${field('fullname').value.trim()}`,`Téléphone : ${field('phone').value}`,`E-mail : ${field('email').value}`,`Paiement envisagé : ${field('payment').value} (non activé)`,'Accès : rue de l’église ECC Vakogbamey, à 100 m de la route goudronnée.','Point GPS communiqué : 6.380253, 2.092563.','Tarifs, services et dates du séjour à confirmer.'];
  summaryText=lines.join('\n');const body=document.querySelector('#confirmation-body');body.replaceChildren();lines.slice(2).forEach(line=>{const p=document.createElement('p');p.textContent=line;body.append(p);});document.querySelector('#confirmation').showModal();
 });
 field('fullname').addEventListener('input',()=>field('fullname').setCustomValidity(''));
@@ -59,7 +59,7 @@ document.querySelector('#download-summary').addEventListener('click',()=>{
   doc.setTextColor(155,45,10);doc.setFontSize(12);doc.text('SIMULATION UNIQUEMENT - AUCUNE RESERVATION',18,46);
   doc.setTextColor(32,46,39);doc.setFontSize(11);let y=57;
   const clean=s=>s.replace(/[\u202f\u00a0]/g,' ').replace(/[’‘]/g,"'").replace(/[–—]/g,'-').replace(/→/g,'au');
-  const rows=summaryText.split('\n').slice(2).concat(['Conditions :','Prix provisoires. Aucun paiement traite. Aucune tente bloquee.','Dates de reservation, autorisations, adresse et services non confirmes.','Ce document ne constitue ni un billet, ni une confirmation, ni une facture.','Les coordonnees restent dans ce PDF et dans votre navigateur. Aucun envoi.']);
+  const rows=summaryText.split('\n').slice(2).concat(['Conditions :','Prix provisoires. Aucun paiement traite. Aucune tente bloquee.','Dates de reservation, autorisations et services non confirmes.','Ce document ne constitue ni un billet, ni une confirmation, ni une facture.','Les coordonnees restent dans ce PDF et dans votre navigateur. Aucun envoi.']);
   rows.forEach(row=>{const wrapped=doc.splitTextToSize(clean(row),174);wrapped.forEach(line=>{if(y>274){doc.addPage();y=22;}doc.text(line,18,y);y+=6;});y+=3;});
   for(let n=1;n<=doc.getNumberOfPages();n++){doc.setPage(n);doc.setFontSize(9);doc.setTextColor(95,105,95);doc.text('Prototype VODUN CAMP - Page '+n+' / '+doc.getNumberOfPages(),18,288);}
   doc.save('vodun-camp-simulation.pdf');text('pdf-status','PDF généré. Vérifiez les téléchargements de votre navigateur.');
