@@ -11,7 +11,7 @@ field('arrival').value = localISO(today); field('departure').value = localISO(to
 field('arrival').min = localISO(today); field('departure').min = localISO(tomorrow);
 const displayDate = value => new Intl.DateTimeFormat('fr-FR',{day:'numeric',month:'short',year:'numeric'}).format(new Date(`${value}T12:00:00`));
 document.querySelectorAll('[data-price]').forEach(el => el.textContent = money(config.plans[el.dataset.price].price));
-document.querySelector('#tent-cards').innerHTML = Object.entries(config.plans).map(([id,p]) => `<article class="tent-card ${id==='duo'?'featured':''}"><div class="tent-image"><img src="assets/camping.png" alt="Détail de la simulation du camping, illustration de la formule ${p.name}" loading="lazy"><span class="tag">${id==='duo'?'L’ESPRIT DU CAMP':p.capacity+' PERSONNE'+(p.capacity>1?'S':'')}</span></div><div class="tent-content"><h3>${p.name}</h3><p>${p.description}</p><div class="tent-price"><strong>${money(p.price)}</strong> <small>FCFA / nuit</small></div><ul>${p.features.map(f=>`<li>${f}</li>`).join('')}</ul><p class="fineprint">${p.stock>0?'Disponible en démonstration':'Complet en démonstration'} · ${p.capacity} pers. max.</p><a class="button" href="#reservation" data-plan="${id}">Choisir ${p.name} <span>↗</span></a></div></article>`).join('');
+document.querySelector('#tent-cards').innerHTML = Object.entries(config.plans).map(([id,p]) => `<article class="tent-card ${id==='duo'?'featured':''}"><div class="tent-image"><img src="assets/camping.png" alt="Détail de la simulation du camping, illustration de la formule ${p.name}" loading="lazy"><span class="tag">CONCEPTION · ${p.capacity} PERSONNE${p.capacity>1?'S':''}</span></div><div class="tent-content"><h3>${p.name}</h3><p>${p.description}</p><div class="tent-price"><strong>${money(p.price)}</strong> <small>FCFA / nuit</small></div><ul>${p.features.map(f=>`<li>${f}</li>`).join('')}</ul><p class="fineprint">Réservations fermées · ${p.capacity} pers. max.</p><a class="button" href="#reservation" data-plan="${id}">Choisir ${p.name} <span>↗</span></a></div></article>`).join('');
 document.querySelector('#options').innerHTML = config.options.map(o=>`<label class="option"><input type="checkbox" name="${o.id}"><span>${o.name}<small>${o.label}</small></span><strong>${money(o.price)} F</strong></label>`).join('');
 function estimate(){
  const plan = config.plans[field('plan').value], guests = Number(field('guests').value);
@@ -32,7 +32,7 @@ function update(){
  text('summary-plan',s.plan.name);text('summary-dates',s.error?'Vérifiez les informations du séjour.':`${displayDate(s.arrival)} → ${displayDate(s.departure)} · ${s.guests} personne${s.guests>1?'s':''}`);
  const lines=document.querySelector('#summary-lines');lines.replaceChildren();
  if(!s.error){addLine(lines,`${s.nights} nuit${s.nights>1?'s':''} × ${money(s.plan.price)} F`,money(s.lodging)+' F');s.options.forEach(o=>addLine(lines,o.name,money(o.total)+' F'));}
- text('total',s.error?'—':money(s.total)+' F');text('availability',`${s.plan.stock} tente${s.plan.stock>1?'s':''} dans le stock fictif · aucune disponibilité réelle vérifiée.`);
+ text('total',s.error?'—':money(s.total)+' F');text('availability','Réservations fermées. Aucun stock réel n’est bloqué.');text('early-total',s.error?'Vérifiez votre séjour':money(s.total)+' FCFA');text('early-detail',s.error?s.error:`${s.nights} nuit(s) · ${s.plan.name} · ${s.guests} personne(s), options incluses si sélectionnées.`);
  document.querySelector('#submit-booking').disabled=Boolean(s.error);
  return s;
 }
@@ -52,7 +52,19 @@ form.addEventListener('submit',event=>{
  summaryText=lines.join('\n');const body=document.querySelector('#confirmation-body');body.replaceChildren();lines.slice(2).forEach(line=>{const p=document.createElement('p');p.textContent=line;body.append(p);});document.querySelector('#confirmation').showModal();
 });
 field('fullname').addEventListener('input',()=>field('fullname').setCustomValidity(''));
-document.querySelector('#download-summary').addEventListener('click',()=>{const url=URL.createObjectURL(new Blob(['\ufeff'+summaryText],{type:'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='vodun-camp-simulation.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
+document.querySelector('#download-summary').addEventListener('click',()=>{
+ try {
+  const {jsPDF}=window.jspdf;const doc=new jsPDF();
+  doc.setFillColor(21,62,52);doc.rect(0,0,210,35,'F');doc.setTextColor(255,255,255);doc.setFontSize(22);doc.text('VODUN CAMP',18,21);
+  doc.setTextColor(155,45,10);doc.setFontSize(12);doc.text('SIMULATION UNIQUEMENT - AUCUNE RESERVATION',18,46);
+  doc.setTextColor(32,46,39);doc.setFontSize(11);let y=57;
+  const clean=s=>s.replace(/[\u202f\u00a0]/g,' ').replace(/[’‘]/g,"'").replace(/[–—]/g,'-').replace(/→/g,'au');
+  const rows=summaryText.split('\n').slice(2).concat(['Conditions :','Prix provisoires. Aucun paiement traite. Aucune tente bloquee.','Dates de reservation, autorisations, adresse et services non confirmes.','Ce document ne constitue ni un billet, ni une confirmation, ni une facture.','Les coordonnees restent dans ce PDF et dans votre navigateur. Aucun envoi.']);
+  rows.forEach(row=>{const wrapped=doc.splitTextToSize(clean(row),174);wrapped.forEach(line=>{if(y>274){doc.addPage();y=22;}doc.text(line,18,y);y+=6;});y+=3;});
+  for(let n=1;n<=doc.getNumberOfPages();n++){doc.setPage(n);doc.setFontSize(9);doc.setTextColor(95,105,95);doc.text('Prototype VODUN CAMP - Page '+n+' / '+doc.getNumberOfPages(),18,288);}
+  doc.save('vodun-camp-simulation.pdf');text('pdf-status','PDF généré. Vérifiez les téléchargements de votre navigateur.');
+ } catch {text('pdf-status','Le PDF n’a pas pu être généré. Rechargez la page et réessayez.');}
+});
 document.querySelector('#whatsapp').addEventListener('click',()=>{if(/^\d{8,15}$/.test(config.whatsapp)){window.open(`https://wa.me/${config.whatsapp}?text=${encodeURIComponent('Bonjour VODUN CAMP, je souhaite des informations sur le camping.')}`,'_blank','noopener,noreferrer');}else{text('contact-status','Le numéro WhatsApp n’a pas encore été communiqué. Le contact sera disponible à l’ouverture des réservations.');}});
 text('year',new Date().getFullYear());
 if('IntersectionObserver' in window)new IntersectionObserver(entries=>document.body.classList.toggle('booking-visible',entries[0].isIntersecting),{threshold:0}).observe(document.querySelector('#reservation'));
