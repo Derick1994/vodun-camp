@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://derick1994.github.io/vodun-camp/sitemap-index.xml
